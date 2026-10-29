@@ -1,0 +1,30 @@
+name: scverse-sbi2
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+  - numpy
+  - pandas
+  - h5py
+  - zarr>=3
+  - dask
+  - xarray
+  - matplotlib
+  - pooch
+  - scikit-learn
+  - umap-learn
+  - pynndescent<0.7
+  - scanpy
+  - anndata>=0.13
+  - pytorch-cpu
+  - torchvision
+  - huggingface_hub
+  - transformers
+  - timm
+  - pip
+  - pip:
+      - annbatch==0.3.1
+      - mantispy[map]==0.1.0a2

@@ -1,0 +1,37 @@
+[workspace]
+name = "scverse-sbi2"
+description = "SBI2 2026 workshop: deep learning on morphology data in the scverse ecosystem"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
+
+[dependencies]
+python = "3.12.*"
+jupyterlab = "*"
+ipykernel = "*"
+ipywidgets = "*"
+numpy = "*"
+pandas = "*"
+h5py = "*"
+zarr = ">=3"
+dask = "*"
+xarray = "*"
+matplotlib = "*"
+pooch = "*"
+scikit-learn = "*"
+umap-learn = "*"
+pynndescent = "<0.7"  # mantispy 0.1.0a2 requires pynndescent<0.7
+scanpy = "*"
+anndata = ">=0.13"
+pytorch-cpu = "*"
+torchvision = "*"
+huggingface_hub = "*"
+transformers = "*"
+timm = "*"
+
+[pypi-dependencies]
+annbatch = "==0.3.1"
+mantispy = { version = "==0.1.0a2", extras = ["map"] }
+
+[tasks]
+kernel = "python -m ipykernel install --user --name scverse-sbi2 --display-name 'Python (scverse-sbi2)'"
+lab = { cmd = "jupyter lab", cwd = "notebooks", depends-on = ["kernel"] }

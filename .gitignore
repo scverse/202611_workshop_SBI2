@@ -1,0 +1,8 @@
+# planning notes with cluster paths
+SPEC.md
+# downloaded workshop data
+notebooks/data/
+data/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
