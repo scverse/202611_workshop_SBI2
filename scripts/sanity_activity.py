@@ -25,8 +25,9 @@ ap.add_argument("--tier", choices=["small", "full"], default="small")
 args = ap.parse_args()
 with h5py.File(W / f"workshop_{args.tier}.h5ad", "r") as f:  # skip the crops in obsm
     emb = [k for k in ("X_openphenom", "X_openphenom_ft", "X_ae") if k in f["obsm"]]
-    a = ad.AnnData(**{k: ad.io.read_elem(f[k]) for k in ("X", "obs", "var")},
-                   obsm={k: ad.io.read_elem(f["obsm"][k]) for k in emb})
+    a = ad.AnnData(
+        **{k: ad.io.read_elem(f[k]) for k in ("X", "obs", "var")}, obsm={k: ad.io.read_elem(f["obsm"][k]) for k in emb}
+    )
 a = a[~a.obs.qc_fail.to_numpy()].copy()
 obs = a.obs[KEYS + ["activity_class", "Metadata_Control_Type"]].astype(str)
 
@@ -34,7 +35,9 @@ sel = a.var.selected.to_numpy()
 reps = {"cp_measure": np.clip(np.nan_to_num(a.X[:, sel]), -50, 50)}
 for k in ("X_openphenom", "X_openphenom_ft", "X_ae"):
     if k in a.obsm:
-        e = ad.AnnData(X=np.asarray(a.obsm[k], dtype=np.float32), obs=a.obs[["Metadata_Source", "Metadata_Control_Type"]].copy())
+        e = ad.AnnData(
+            X=np.asarray(a.obsm[k], dtype=np.float32), obs=a.obs[["Metadata_Source", "Metadata_Control_Type"]].copy()
+        )
         mp.pp.normalize(e, method="mad_robustize", by="Metadata_Source", reference="negcon")
         reps[k.removeprefix("X_")] = np.clip(np.nan_to_num(e.X), -50, 50)
 
@@ -51,8 +54,16 @@ for name, x in reps.items():
         if s.obs.is_dmso.sum() < 2:
             print(f"{name} {src}: <2 DMSO wells, skipped")
             continue
-        mp.tl.map(s, mode="activity", label="Metadata_Perturbation", batch="Metadata_Source", reference="is_dmso",
-                  null_size=20000, key_added="map", n_jobs=4)
+        mp.tl.map(
+            s,
+            mode="activity",
+            label="Metadata_Perturbation",
+            batch="Metadata_Source",
+            reference="is_dmso",
+            null_size=20000,
+            key_added="map",
+            n_jobs=4,
+        )
         t = s.uns["mantispy"]["map"][["Metadata_Perturbation", "score", "qvalue"]].copy()
         t["source"], t["rep"] = src, name
         t["activity_class"] = t.Metadata_Perturbation.map(cls).to_numpy()

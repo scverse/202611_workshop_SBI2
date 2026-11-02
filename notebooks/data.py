@@ -35,8 +35,7 @@ EMBEDDINGS = ("X_openphenom", "X_openphenom_ft", "X_ae", "X_ae_fulltrained")
 
 def fetch(name: str) -> str:
     """Download `name` into ./data (once) and return its local path."""
-    return pooch.retrieve(f"{BASE_URL}{name}", known_hash=REGISTRY[name], fname=name, path="data",
-                          progressbar=True)
+    return pooch.retrieve(f"{BASE_URL}{name}", known_hash=REGISTRY[name], fname=name, path="data", progressbar=True)
 
 
 def tier_file(tier: str) -> str:
@@ -60,8 +59,10 @@ def load_images(path: str):
     """The crops as lazy dask arrays (nothing is read until you index them): images (n,5,96,96), masks (n,2,96,96)."""
     f = h5py.File(path, "r")  # stays open while the arrays are in use
     chunks = (16, -1, -1, -1)
-    return (ad.experimental.read_elem_lazy(f["obsm"]["single_cell_images"], chunks=chunks),
-            ad.experimental.read_elem_lazy(f["obsm"]["masks"], chunks=chunks))
+    return (
+        ad.experimental.read_elem_lazy(f["obsm"]["single_cell_images"], chunks=chunks),
+        ad.experimental.read_elem_lazy(f["obsm"]["masks"], chunks=chunks),
+    )
 
 
 def peak_memory_gb() -> float:

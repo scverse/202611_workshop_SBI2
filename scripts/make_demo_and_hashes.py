@@ -1,5 +1,6 @@
 """Write openphenom_demo_crops224.h5 (256 small-tier cells at 224 px, the resolution X_openphenom was computed at)
 and print sha256 for every downloadable file (for notebooks/data.py)."""
+
 import hashlib
 import os
 from pathlib import Path
@@ -28,8 +29,14 @@ with h5py.File(W / "openphenom_demo_crops224.h5", "w") as f:
     f.attrs["channels"] = ["DNA", "AGP", "ER", "Mito", "RNA"]
     f.attrs["description"] = "256 workshop_small cells, 224 px crops (input of X_openphenom), rows in small-tier order"
 
-for name in ["workshop_small.h5ad", "workshop_full.h5ad", "workshop_full_collection.zarr.zip", "autoencoder.pt",
-             "autoencoder_full.pt", "openphenom_demo_crops224.h5"]:
+for name in [
+    "workshop_small.h5ad",
+    "workshop_full.h5ad",
+    "workshop_full_collection.zarr.zip",
+    "autoencoder.pt",
+    "autoencoder_full.pt",
+    "openphenom_demo_crops224.h5",
+]:
     h = hashlib.sha256()
     with open(W / name, "rb") as fh:
         for b in iter(lambda: fh.read(1 << 24), b""):

@@ -49,7 +49,7 @@ for i in range(hi - lo):
     if not masks[i].any():  # featurize raises on a batch without any labelled object
         rows.append({})
         continue
-    data, cols, r = featurize(imgs[i:i + 1], masks[i:i + 1], config)
+    data, cols, r = featurize(imgs[i : i + 1], masks[i : i + 1], config)
     rows.append({f"{obj}_{c}": v for (_, obj, _), row in zip(r, data) for c, v in zip(cols, row)})
     if i % 100 == 0:
         print(f"{i}/{hi - lo} {time.time() - t0:.0f}s", flush=True)

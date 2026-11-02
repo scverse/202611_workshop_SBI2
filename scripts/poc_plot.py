@@ -1,5 +1,6 @@
 """Plot the CNN POC curves: train loss and held-out balanced accuracy vs samples seen, small and full tier,
 plain shuffle vs class-balanced sampling. usage: python poc_plot.py <poc dir> [max_lr]"""
+
 import sys
 from pathlib import Path
 
@@ -11,8 +12,12 @@ df = pd.concat([pd.read_csv(p) for p in sorted(d.glob("*_losses.csv")) if p.name
 df.to_csv(d / "poc_losses_all.csv", index=False)
 if len(sys.argv) > 2:
     df = df[df.max_lr == float(sys.argv[2])]
-colors = {("small", "shuffle"): "tab:blue", ("small", "balanced"): "tab:cyan",
-          ("full", "shuffle"): "tab:red", ("full", "balanced"): "tab:orange"}
+colors = {
+    ("small", "shuffle"): "tab:blue",
+    ("small", "balanced"): "tab:cyan",
+    ("full", "shuffle"): "tab:red",
+    ("full", "balanced"): "tab:orange",
+}
 fig, axes = plt.subplots(1, 2, figsize=(13, 4.5))
 for (tier, sampler), g in df.groupby(["tier", "sampler"]):
     c, lab = colors.get((tier, sampler), "k"), f"{tier}, {sampler}"

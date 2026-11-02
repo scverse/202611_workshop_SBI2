@@ -5,6 +5,7 @@ tokens = the mean of the 5 per-channel means, so mean(reshape(5, 384)) must matc
 which does not matter for the mean).
 usage: python check_openphenom_vs_bench.py <crops224.zarr dir> <X_openphenom.npy>
 """
+
 import os
 import sys
 
@@ -28,5 +29,7 @@ ref[o] = np.asarray(z.X[np.sort(idx)])
 ref = ref.reshape(len(idx), 5, 384).mean(1)
 u, v = ours[take], ref
 cos = (u * v).sum(1) / np.linalg.norm(u, axis=1) / np.linalg.norm(v, axis=1)
-print(f"cosine(ours, mean of bench channelwise) on {len(take)} cells: median {np.median(cos):.4f}, "
-      f"min {cos.min():.4f}; max abs diff {np.abs(u - v).max():.4g}")
+print(
+    f"cosine(ours, mean of bench channelwise) on {len(take)} cells: median {np.median(cos):.4f}, "
+    f"min {cos.min():.4f}; max abs diff {np.abs(u - v).max():.4g}"
+)

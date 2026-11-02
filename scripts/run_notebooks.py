@@ -4,6 +4,7 @@ Expects notebooks/data/ to hold the downloadable files (symlinks to local copies
 Fails if an output contains a cluster path.
 usage: python run_notebooks.py <repo dir> [notebook stem ...]
 """
+
 import os
 import re
 import sys
@@ -25,11 +26,18 @@ for stem in stems:
     kernel = os.environ.get("SBI2_KERNEL", "python3")  # e.g. scverse-sbi2, the pixi environment's kernel
     nb.metadata["kernelspec"] = {"name": "scverse-sbi2", "display_name": "Python (scverse-sbi2)", "language": "python"}
     t0 = time.time()
-    NotebookClient(nb, timeout=int(os.environ.get("SBI2_CELL_TIMEOUT", 3600)), kernel_name=kernel, resources={"metadata": {"path": str(nbdir)}}).execute()
+    NotebookClient(
+        nb,
+        timeout=int(os.environ.get("SBI2_CELL_TIMEOUT", 3600)),
+        kernel_name=kernel,
+        resources={"metadata": {"path": str(nbdir)}},
+    ).execute()
     dt = time.time() - t0
     nbformat.write(nb, nbdir / f"{stem}.ipynb")
     text = nbformat.writes(nb)
     hits = sorted(set(BAD.findall(text)))
     last = [o.get("text", "") for c in nb.cells if c.cell_type == "code" for o in c.get("outputs", [])][-1:]
-    print(f"{stem}: executed in {dt:.0f} s; {''.join(last).strip()}; cluster paths in outputs: {hits or 'none'}",
-          flush=True)
+    print(
+        f"{stem}: executed in {dt:.0f} s; {''.join(last).strip()}; cluster paths in outputs: {hits or 'none'}",
+        flush=True,
+    )

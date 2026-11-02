@@ -31,11 +31,14 @@ idx = np.sort(rng.choice(n_total, N, replace=False))
 imgs = g["images"].oindex[idx].astype(np.float32) / 255.0
 masks = (g["masks"].oindex[idx] > 0).astype(np.int32)
 
-empty = (masks.reshape(N, 2, -1).sum(-1) == 0)
+empty = masks.reshape(N, 2, -1).sum(-1) == 0
 print(f"empty masks among {N}: nucleus {empty[:, 0].sum()}, cell {empty[:, 1].sum()}")
-config = make_featurizer_config(["DNA", "AGP", "ER", "Mito", "RNA"], objects=["nucleus", "cell"],
-                                # images are 8-bit scaled to [0, 1]; Costes needs the original bit depth
-                                correlation_costes_params={"scale_max": 255})
+config = make_featurizer_config(
+    ["DNA", "AGP", "ER", "Mito", "RNA"],
+    objects=["nucleus", "cell"],
+    # images are 8-bit scaled to [0, 1]; Costes needs the original bit depth
+    correlation_costes_params={"scale_max": 255},
+)
 
 for acc in (None, "numba"):
     cp_measure.set_accelerator(acc)
@@ -47,7 +50,7 @@ for acc in (None, "numba"):
         try:
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                data, cols, r = featurize(imgs[i:i + 1], masks[i:i + 1], config)
+                data, cols, r = featurize(imgs[i : i + 1], masks[i : i + 1], config)
             for x in w:
                 key = f"{x.category.__name__}: {str(x.message)[:120]}"
                 warns[key] = warns.get(key, 0) + 1
@@ -66,8 +69,10 @@ for acc in (None, "numba"):
     print(f"time/cell: mean {times.mean():.3f}s median {np.median(times):.3f}s p95 {np.percentile(times, 95):.3f}s")
     print(f"est. single-core time for {n_total} cells: {times.mean() * n_total / 3600:.2f} h")
     nan_cols = df.columns[df.isna().any()]
-    print(f"columns with any NaN: {len(nan_cols)}; all-NaN: {int(df.isna().all().sum())}; "
-          f"constant: {int((df.nunique() <= 1).sum())}")
+    print(
+        f"columns with any NaN: {len(nan_cols)}; all-NaN: {int(df.isna().all().sum())}; "
+        f"constant: {int((df.nunique() <= 1).sum())}"
+    )
     print("NaN columns sample:", list(nan_cols[:10]))
     for k, v in sorted(warns.items(), key=lambda kv: -kv[1])[:10]:
         print(f"  warning x{v}: {k}")
@@ -81,5 +86,7 @@ for acc in (None, "numba"):
 if (W / "work/cpm_test_None.parquet").exists() and (W / "work/cpm_test_numba.parquet").exists():
     a, b = pd.read_parquet(W / "work/cpm_test_None.parquet"), pd.read_parquet(W / "work/cpm_test_numba.parquet")
     common = a.columns.intersection(b.columns)
-    diff = np.nanmax(np.abs(a[common].to_numpy() - b[common].to_numpy()) / (np.abs(a[common].to_numpy()) + 1e-6), axis=0)
+    diff = np.nanmax(
+        np.abs(a[common].to_numpy() - b[common].to_numpy()) / (np.abs(a[common].to_numpy()) + 1e-6), axis=0
+    )
     print(f"\nnumpy vs numba: {len(common)} common columns, max rel diff > 1e-3 in {(diff > 1e-3).sum()} columns")

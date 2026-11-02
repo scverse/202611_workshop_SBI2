@@ -1,6 +1,6 @@
 """Drop layers["raw"] from a tier's h5ad (HDF5 does not shrink on delete, so copy everything else to a new file).
 
-    python strip_raw.py --tier full
+python strip_raw.py --tier full
 """
 
 import argparse

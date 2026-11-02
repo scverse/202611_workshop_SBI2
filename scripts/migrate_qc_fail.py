@@ -3,6 +3,7 @@
 Rewrites only obs (h5ad: the obs group; collections: each dataset group's obs) and re-zips the collections.
 Then checks that mantispy.pp.filter_cells(require_qc=True) works on each h5ad.
 """
+
 import os
 import subprocess
 from pathlib import Path

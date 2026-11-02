@@ -26,10 +26,12 @@ CLIP = 50.0
 class AutoEncoder(nn.Module):
     def __init__(self, n_in: int, hidden: int = 256, latent: int = 32, dropout: float = 0.1):
         super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(n_in, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Dropout(dropout),
-                                     nn.Linear(hidden, latent))
-        self.decoder = nn.Sequential(nn.Linear(latent, hidden), nn.LayerNorm(hidden), nn.GELU(),
-                                     nn.Linear(hidden, n_in))
+        self.encoder = nn.Sequential(
+            nn.Linear(n_in, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden, latent)
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(latent, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Linear(hidden, n_in)
+        )
 
     def forward(self, x):
         z = self.encoder(x)
@@ -46,9 +48,16 @@ def features(adata: ad.AnnData, names: list[str] | None = None) -> np.ndarray:
 
 def make_loader(x: np.ndarray, batch_size: int, shuffle: bool, seed: int) -> Loader:
     # annbatch's in-memory path: a dense AnnData, batches of `batch_size` drawn from preloaded chunks
-    return Loader(batch_size=batch_size, chunk_size=32, preload_nchunks=64, shuffle=shuffle, drop_last=shuffle,
-                  to="torch", preload_to_gpu=False, rng=np.random.default_rng(seed) if shuffle else None,
-                  ).add_adata(ad.AnnData(X=x))
+    return Loader(
+        batch_size=batch_size,
+        chunk_size=32,
+        preload_nchunks=64,
+        shuffle=shuffle,
+        drop_last=shuffle,
+        to="torch",
+        preload_to_gpu=False,
+        rng=np.random.default_rng(seed) if shuffle else None,
+    ).add_adata(ad.AnnData(X=x))
 
 
 def evaluate(model, loader, dev) -> float:
@@ -126,9 +135,19 @@ def main():
                 break
     if best_state is not None:
         model.load_state_dict(best_state)
-        torch.save({"state_dict": best_state, "n_in": x_all.shape[1], "hidden": args.hidden, "latent": args.latent,
-                    "features": names or adata.var_names[adata.var["selected"].to_numpy()].tolist(), "clip": CLIP,
-                    "val_mse_history": history, "best_val_mse": best}, args.out)
+        torch.save(
+            {
+                "state_dict": best_state,
+                "n_in": x_all.shape[1],
+                "hidden": args.hidden,
+                "latent": args.latent,
+                "features": names or adata.var_names[adata.var["selected"].to_numpy()].tolist(),
+                "clip": CLIP,
+                "val_mse_history": history,
+                "best_val_mse": best,
+            },
+            args.out,
+        )
         print(f"saved {args.out}")
 
     if args.latent_out:

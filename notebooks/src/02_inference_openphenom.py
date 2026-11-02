@@ -41,7 +41,9 @@ from huggingface_hub import snapshot_download
 
 from data import fetch, load_cells, load_images, peak_memory_gb, plot_2d, tier_file, umap_2d
 
-RUN_LIVE = (RUN_LIVE or os.environ.get("SBI2_RUN_LIVE") == "1") and os.environ.get("SBI2_SKIP_LIVE") != "1"  # build-machine overrides
+RUN_LIVE = (RUN_LIVE or os.environ.get("SBI2_RUN_LIVE") == "1") and os.environ.get(
+    "SBI2_SKIP_LIVE"
+) != "1"  # build-machine overrides
 torch.set_num_threads(4)
 t_start = time.time()
 path = tier_file(TIER)
@@ -140,10 +142,11 @@ def embed(crops_uint8: np.ndarray, batch_size: int = 32) -> np.ndarray:
     """(n, 5, H, W) uint8 crops in our channel order -> (n, 384) OpenPhenom embeddings."""
     out = []
     for s in range(0, len(crops_uint8), batch_size):
-        x = torch.from_numpy(np.ascontiguousarray(crops_uint8[s:s + batch_size][:, perm]))  # remap channels by name
+        x = torch.from_numpy(np.ascontiguousarray(crops_uint8[s : s + batch_size][:, perm]))  # remap channels by name
         x = TF.resize(x, [256, 256], antialias=True)  # upsample to the model's input size, still uint8
         out.append(model.predict(x).numpy())
     return np.concatenate(out)
+
 
 # %% [markdown]
 # ## Inference, live
@@ -161,13 +164,18 @@ if RUN_LIVE:
     t0 = time.time()
     live = embed(np.asarray(images[pick]))
     dt = time.time() - t0
-    print(f"{len(pick)} cells in {dt:.0f} s = {dt / len(pick) * 1e3:.0f} ms per cell on {torch.get_num_threads()} threads")
-    print(f"all {cells.n_obs:,} cells of the {TIER} tier would take about {dt / len(pick) * cells.n_obs / 60:.0f} min; "
-          f"the full tier (98,345 cells) about {dt / len(pick) * 98345 / 3600:.1f} h. That is why they were precomputed.")
+    print(
+        f"{len(pick)} cells in {dt:.0f} s = {dt / len(pick) * 1e3:.0f} ms per cell on {torch.get_num_threads()} threads"
+    )
+    print(
+        f"all {cells.n_obs:,} cells of the {TIER} tier would take about {dt / len(pick) * cells.n_obs / 60:.0f} min; "
+        f"the full tier (98,345 cells) about {dt / len(pick) * 98345 / 3600:.1f} h. That is why they were precomputed."
+    )
 
 
 def cosine(a, b):
     return (a * b).sum(1) / np.linalg.norm(a, axis=1) / np.linalg.norm(b, axis=1)
+
 
 # %% [markdown]
 # Do we get the stored embeddings back? The stored ones were computed from the original 224 px crops; we used the
@@ -199,8 +207,11 @@ if RUN_LIVE:
 # works on it. This is the hand-off point from deep learning to the rest of the ecosystem.
 
 # %%
-emb = ad.AnnData(X=np.asarray(cells.obsm["X_openphenom"], dtype=np.float32), obs=cells.obs.copy(),
-                 uns={"mantispy": cells.uns["mantispy"]})
+emb = ad.AnnData(
+    X=np.asarray(cells.obsm["X_openphenom"], dtype=np.float32),
+    obs=cells.obs.copy(),
+    uns={"mantispy": cells.uns["mantispy"]},
+)
 emb = emb[~emb.obs["qc_fail"].to_numpy()].copy()
 emb
 
@@ -234,10 +245,20 @@ def activity(wells: ad.AnnData) -> pd.DataFrame:
         if s.obs["is_dmso"].sum() < 2:
             continue
         # copairs sees only the Metadata_* columns, so the batch key must be one of them
-        mt.tl.map(s, mode="activity", label="Metadata_Perturbation", batch="Metadata_Source", reference="is_dmso",
-                  null_size=10_000, n_jobs=4)
-        rows.append(s.uns["mantispy"]["map"][["Metadata_Perturbation", "score", "qvalue"]].assign(
-            source=src, n_dmso_wells=int(s.obs["is_dmso"].sum())))
+        mt.tl.map(
+            s,
+            mode="activity",
+            label="Metadata_Perturbation",
+            batch="Metadata_Source",
+            reference="is_dmso",
+            null_size=10_000,
+            n_jobs=4,
+        )
+        rows.append(
+            s.uns["mantispy"]["map"][["Metadata_Perturbation", "score", "qvalue"]].assign(
+                source=src, n_dmso_wells=int(s.obs["is_dmso"].sum())
+            )
+        )
     res = pd.concat(rows, ignore_index=True)
     res["active"] = res["qvalue"] < 0.05
     return res
@@ -245,8 +266,9 @@ def activity(wells: ad.AnnData) -> pd.DataFrame:
 
 act = activity(wells)
 klass = cells.obs.drop_duplicates("compound").set_index("compound")["activity_class"].astype(str)
-per_compound = act.groupby("Metadata_Perturbation").agg(mAP=("score", "mean"), active_in=("active", "sum"),
-                                                        sources=("source", "nunique"))
+per_compound = act.groupby("Metadata_Perturbation").agg(
+    mAP=("score", "mean"), active_in=("active", "sum"), sources=("source", "nunique")
+)
 per_compound["activity_class"] = per_compound.index.map(klass)
 per_compound.sort_values("mAP", ascending=False).round(2).head(15)
 
@@ -261,8 +283,14 @@ act.assign(activity_class=act["Metadata_Perturbation"].map(klass)).groupby("acti
 # better than compounds of other classes.
 
 # %%
-RULES = [("tubulin", ("TUBA", "TUBB")), ("HSP90", ("HSP90",)), ("ribosome / translation", ("RPL", "RPS")),
-         ("CDK", ("CDK",)), ("mitotic kinase (PLK, Aurora)", ("PLK", "AURK")), ("PI3K / mTOR", ("PIK3", "MTOR"))]
+RULES = [
+    ("tubulin", ("TUBA", "TUBB")),
+    ("HSP90", ("HSP90",)),
+    ("ribosome / translation", ("RPL", "RPS")),
+    ("CDK", ("CDK",)),
+    ("mitotic kinase (PLK, Aurora)", ("PLK", "AURK")),
+    ("PI3K / mTOR", ("PIK3", "MTOR")),
+]
 
 
 def target_class(targets: str) -> str:
@@ -278,14 +306,24 @@ moa = targets.map(target_class)
 active_cpds = per_compound.index[(per_compound["active_in"] >= 2) & (per_compound.index != "DMSO")]
 cons = wells[wells.obs["Metadata_Perturbation"].isin(active_cpds)]
 cons_df = pd.DataFrame(cons.X, index=cons.obs["Metadata_Perturbation"].astype(str).to_numpy()).groupby(level=0).mean()
-consensus = ad.AnnData(X=cons_df.to_numpy(np.float32), obs=pd.DataFrame(
-    {"Metadata_Perturbation": cons_df.index, "Metadata_MOA": cons_df.index.map(moa)}, index=cons_df.index))
+consensus = ad.AnnData(
+    X=cons_df.to_numpy(np.float32),
+    obs=pd.DataFrame(
+        {"Metadata_Perturbation": cons_df.index, "Metadata_MOA": cons_df.index.map(moa)}, index=cons_df.index
+    ),
+)
 print(consensus.obs["Metadata_MOA"].value_counts().to_dict())
 
 # %%
 annotated = consensus[consensus.obs["Metadata_MOA"] != "other"].copy()
-mt.tl.map(annotated, mode="consistency", annotation_key="Metadata_MOA", label="Metadata_Perturbation",
-          null_size=10_000, n_jobs=4)
+mt.tl.map(
+    annotated,
+    mode="consistency",
+    annotation_key="Metadata_MOA",
+    label="Metadata_Perturbation",
+    null_size=10_000,
+    n_jobs=4,
+)
 annotated.uns["mantispy"]["map"].round(3)
 
 # %% [markdown]
@@ -318,8 +356,10 @@ plt.tight_layout()
 
 # %%
 active_set = set(active_cpds)
-wells.obs["mechanism"] = ["DMSO" if p == "DMSO" else moa[p] if p in active_set else "other"
-                          for p in wells.obs["Metadata_Perturbation"].astype(str)]
+wells.obs["mechanism"] = [
+    "DMSO" if p == "DMSO" else moa[p] if p in active_set else "other"
+    for p in wells.obs["Metadata_Perturbation"].astype(str)
+]
 xy = umap_2d(wells.X, n_neighbors=10)
 plot_2d(xy, wells.obs, ["mechanism"], titles=["well profiles (OpenPhenom), coloured by mechanism class"])
 plt.tight_layout()
@@ -369,9 +409,11 @@ def wells_of(x: np.ndarray, norm: str) -> ad.AnnData:
 
 
 sel = cells.var["selected"].to_numpy()
-reps = {"cp_measure": activity(wells_of(cells.X[:, sel], "none")),  # X is already normalized per plate
-        "OpenPhenom": act,
-        "OpenPhenom fine-tuned": activity(wells_of(cells.obsm["X_openphenom_ft"], "plate"))}
+reps = {
+    "cp_measure": activity(wells_of(cells.X[:, sel], "none")),  # X is already normalized per plate
+    "OpenPhenom": act,
+    "OpenPhenom fine-tuned": activity(wells_of(cells.obsm["X_openphenom_ft"], "plate")),
+}
 res = pd.concat([r.assign(representation=k) for k, r in reps.items()], ignore_index=True)
 res["activity_class"] = res["Metadata_Perturbation"].map(klass)
 table = res.pivot_table(index="representation", columns="activity_class", values="active", aggfunc="mean")
@@ -399,8 +441,12 @@ table.round(2)
 reps["cp_measure, vs DMSO per source"] = activity(wells_of(cells.layers["raw"][:, sel], "dmso_source"))
 res = pd.concat([r.assign(representation=k) for k, r in reps.items()], ignore_index=True)
 res["activity_class"] = res["Metadata_Perturbation"].map(klass)
-fp = res[res["activity_class"] == "inactive"].pivot_table(index="representation", columns="source", values="active",
-                                                          aggfunc="mean").loc[list(reps)].round(2)
+fp = (
+    res[res["activity_class"] == "inactive"]
+    .pivot_table(index="representation", columns="source", values="active", aggfunc="mean")
+    .loc[list(reps)]
+    .round(2)
+)
 fp.loc["number of DMSO wells"] = res.drop_duplicates("source").set_index("source")["n_dmso_wells"].reindex(fp.columns)
 fp
 

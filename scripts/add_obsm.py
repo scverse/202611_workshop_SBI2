@@ -17,8 +17,11 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--tier", choices=["small", "full"], required=True)
 ap.add_argument("--key", required=True)
 ap.add_argument("--npy", required=True)
-ap.add_argument("--slice-from-full", action="store_true",
-                help="the .npy follows workshop_full.h5ad; take the small tier's rows (highlight != 'other')")
+ap.add_argument(
+    "--slice-from-full",
+    action="store_true",
+    help="the .npy follows workshop_full.h5ad; take the small tier's rows (highlight != 'other')",
+)
 args = ap.parse_args()
 
 x = np.load(W / args.npy).astype(np.float32)

@@ -36,8 +36,17 @@ COLL = W / f"workshop_{args.tier}_collection.zarr"
 # (1)
 with h5py.File(H5, "r") as f:
     lazy = ad.experimental.read_elem_lazy(f["obsm"]["single_cell_images"], chunks=CHUNKS)
-    print("(1) read_elem_lazy:", type(lazy).__name__, lazy.shape, lazy.dtype, "chunks", lazy.chunksize,
-          "| h5 chunks", f["obsm"]["single_cell_images"].chunks, f["obsm"]["single_cell_images"].compression)
+    print(
+        "(1) read_elem_lazy:",
+        type(lazy).__name__,
+        lazy.shape,
+        lazy.dtype,
+        "chunks",
+        lazy.chunksize,
+        "| h5 chunks",
+        f["obsm"]["single_cell_images"].chunks,
+        f["obsm"]["single_cell_images"].compression,
+    )
     first = np.asarray(lazy[:16])
     assert first.shape == (16, 5, 96, 96) and first.dtype == np.uint8 and first.any()
 if not args.collection:
@@ -67,8 +76,13 @@ print(f"collection written in {time.time() - t0:.0f}s")
 groups = list(coll)
 for g in groups:
     assert "X" in g and "single_cell_images" in g["obsm"], f"{g.path} lacks X or obsm/single_cell_images"
-print("(2) datasets:", [(g.path, g["X"].shape, g["obsm"]["single_cell_images"].shape,
-                         g["obsm"]["single_cell_images"].chunks) for g in groups])
+print(
+    "(2) datasets:",
+    [
+        (g.path, g["X"].shape, g["obsm"]["single_cell_images"].shape, g["obsm"]["single_cell_images"].chunks)
+        for g in groups
+    ],
+)
 
 # (3)
 obs = [ad.io.read_elem(g["obs"]) for g in groups]
@@ -79,8 +93,10 @@ for key, bs in (("X", 1024), ("obsm/single_cell_images", 64)):
     for i, batch in enumerate(loader):
         n += batch["X"].shape[0]
         if i == 0:
-            print(f"(3) {key}: first batch {tuple(batch['X'].shape)} {batch['X'].dtype}, "
-                  f"{batch['obs']['compound'].nunique()} compounds in batch")
+            print(
+                f"(3) {key}: first batch {tuple(batch['X'].shape)} {batch['X'].dtype}, "
+                f"{batch['obs']['compound'].nunique()} compounds in batch"
+            )
         if time.time() - t0 > 120:
             break
     print(f"    {n} rows in {time.time() - t0:.1f}s ({n / (time.time() - t0):.0f} rows/s)")

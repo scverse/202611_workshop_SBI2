@@ -30,8 +30,21 @@ FT = Path(os.environ["SBI2_SOURCE"]) / Path("results/embeddings/05_JUMP_OpenPhen
 OBJECTS = {"nucleus": "Nuclei", "cell": "Cells"}
 # cp_measure names Haralick features without a group ("Variance_3_00_256__AGP"); mantispy's cp_measure grammar
 # expects <Group>_<Feature>, so prefix them with Texture_ to get them parsed.
-HARALICK = ("AngularSecondMoment", "Contrast", "Correlation", "Variance", "InverseDifferenceMoment", "SumAverage",
-            "SumVariance", "SumEntropy", "Entropy", "DifferenceVariance", "DifferenceEntropy", "InfoMeas1", "InfoMeas2")
+HARALICK = (
+    "AngularSecondMoment",
+    "Contrast",
+    "Correlation",
+    "Variance",
+    "InverseDifferenceMoment",
+    "SumAverage",
+    "SumVariance",
+    "SumEntropy",
+    "Entropy",
+    "DifferenceVariance",
+    "DifferenceEntropy",
+    "InfoMeas1",
+    "InfoMeas2",
+)
 
 
 def cpm_name(c: str) -> str:
@@ -91,8 +104,9 @@ for prefix, obj in OBJECTS.items():
     cols = [c for c in feat.columns if c.startswith(prefix + "_")]
     df = feat[cols].rename(columns=lambda c: cpm_name(c.split("_", 1)[1]))
     df = df.assign(Metadata_Plate=obs.Metadata_Plate.to_numpy(), Metadata_Well=obs.Metadata_Well.to_numpy())
-    a = mp.io.from_dataframe(df.reset_index(drop=True), convention="cp_measure", resolution="object",
-                             object_type="Cells")
+    a = mp.io.from_dataframe(
+        df.reset_index(drop=True), convention="cp_measure", resolution="object", object_type="Cells"
+    )
     v = a.var.copy()
     v["object"] = obj
     v.index = [f"{obj}_{n}" for n in v.index]
@@ -100,14 +114,18 @@ for prefix, obj in OBJECTS.items():
     vars_.append(v)
 var = pd.concat(vars_)
 X = np.hstack(Xs)
-print("var feature_kind:", var.feature_kind.value_counts().to_dict(), "| dropped by parser:",
-      feat.shape[1] - X.shape[1])
+print(
+    "var feature_kind:", var.feature_kind.value_counts().to_dict(), "| dropped by parser:", feat.shape[1] - X.shape[1]
+)
 
 adata = ad.AnnData(X=X, obs=obs, var=var)
 adata.obs = mp._core.schema.ensure_object_identity(adata.obs, object_type="Cells")
 mp.pp.annotate_controls(adata, negcon=["DMSO"], perturbation_key="Metadata_Perturbation")
-mp.io.stamp(adata, resolution="object", perturbation={"column": "Metadata_Perturbation",
-                                                      "control_column": "Metadata_Control_Type"})
+mp.io.stamp(
+    adata,
+    resolution="object",
+    perturbation={"column": "Metadata_Perturbation", "control_column": "Metadata_Control_Type"},
+)
 
 # ---- QC flags
 nuc_cols, cell_cols = var.object.eq("Nuclei").to_numpy(), var.object.eq("Cells").to_numpy()
@@ -119,23 +137,28 @@ adata.obs["qc_nan_fraction"] = nan_frac.astype(np.float32)
 adata.obs["qc_high_nan"] = nan_frac > 0.1
 area = adata.obs.nuc_area.to_numpy()
 adata.obs["qc_tiny_nucleus"] = area < 50
-adata.obs["qc_fail"] = (adata.obs.qc_empty_nucleus | adata.obs.qc_empty_cell | adata.obs.qc_high_nan
-                        | adata.obs.qc_tiny_nucleus)
+adata.obs["qc_fail"] = (
+    adata.obs.qc_empty_nucleus | adata.obs.qc_empty_cell | adata.obs.qc_high_nan | adata.obs.qc_tiny_nucleus
+)
 print("QC:", {c: int(adata.obs[c].sum()) for c in adata.obs.columns if c.startswith("qc_") and c != "qc_nan_fraction"})
 
 # ---- normalize, then feature selection
 raw = adata.X.copy()
 if args.norm == "plate":
     mp.pp.normalize(adata, method="mad_robustize", by="Metadata_Plate", reference=None)
-    norm = {"method": "mantispy.pp.normalize(method='mad_robustize', by='Metadata_Plate', reference=None)",
-            "reference": "all cells of the same plate (in this tier)",
-            "why": "TARGET2 has too few DMSO cells for DMSO-referenced statistics (one source in the full tier has a "
-                   "single DMSO cell); in the sanity check whole-plate normalization halved the inactive compounds "
-                   "called active (0.65 -> 0.30) relative to per-source DMSO normalization"}
+    norm = {
+        "method": "mantispy.pp.normalize(method='mad_robustize', by='Metadata_Plate', reference=None)",
+        "reference": "all cells of the same plate (in this tier)",
+        "why": "TARGET2 has too few DMSO cells for DMSO-referenced statistics (one source in the full tier has a "
+        "single DMSO cell); in the sanity check whole-plate normalization halved the inactive compounds "
+        "called active (0.65 -> 0.30) relative to per-source DMSO normalization",
+    }
 else:
     mp.pp.normalize(adata, method="mad_robustize", by="Metadata_Source", reference="negcon")
-    norm = {"method": "mantispy.pp.normalize(method='mad_robustize', by='Metadata_Source', reference='negcon')",
-            "reference": "DMSO cells (Metadata_Control_Type == 'negcon') of the same source"}
+    norm = {
+        "method": "mantispy.pp.normalize(method='mad_robustize', by='Metadata_Source', reference='negcon')",
+        "reference": "DMSO cells (Metadata_Control_Type == 'negcon') of the same source",
+    }
 mp.pp.feature_select(adata, key_added="selected")
 selected = adata.var.selected.to_numpy()
 print(f"selected {int(selected.sum())} / {adata.n_vars} features")
@@ -148,7 +171,7 @@ adata.uns["normalization"] = {
     "feature_select": "mantispy.pp.feature_select defaults; var['selected']",
     "clipping": "none in X; notebooks clip at |z| <= 50",
     "cp_measure": "cp_measure 0.3.0 featurizer, objects nucleus+cell (mask>0), 5 channels scaled to [0,1], "
-                  "Costes scale_max=255, 224 px crops",
+    "Costes scale_max=255, 224 px crops",
 }
 
 # ---- embeddings
@@ -172,7 +195,7 @@ adata.uns["obsm_description"] = json.dumps({
     "X_openphenom": "off-the-shelf recursionpharma/OpenPhenom, 384-d, 224->256 px bilinear, uint8",
     "X_openphenom_ft": "CP-BG-Bench run 05 (OpenPhenom + LoRA, ECFP4 CLIP, view C) 128-d, joined by row_key",
     "X_ae": "latent of the pretrained MLP autoencoder (autoencoder.pt, trained on the small tier) on X[:, features "
-            "stored in the checkpoint], clipped |z| <= 50, NaN -> 0",
+    "stored in the checkpoint], clipped |z| <= 50, NaN -> 0",
     "single_cell_images": "(n, 5, 96, 96) uint8 [DNA, AGP, ER, Mito, RNA], 224 px crops downsampled with cv2 INTER_AREA",
     "masks": "(n, 2, 96, 96) uint8 {0, 255} [nucleus, cell], downsampled with cv2 INTER_NEAREST",
 })

@@ -79,8 +79,10 @@ def main():
     (W / "work").mkdir(exist_ok=True)
     g224, i224, m224 = make_store(work / "crops224.zarr", n, 224, obs)
     g96, i96, m96 = make_store(work / "crops96.zarr", n, S, obs)
-    g96.attrs["description"] = ("SBI2 workshop crops: JUMP-CP TARGET2 cells (CP-BG-Bench jump-c view), 224 px crops "
-                                "downsampled to 96 px; rows aligned with workshop_cells.h5ad obs.")
+    g96.attrs["description"] = (
+        "SBI2 workshop crops: JUMP-CP TARGET2 cells (CP-BG-Bench jump-c view), 224 px crops "
+        "downsampled to 96 px; rows aligned with workshop_cells.h5ad obs."
+    )
 
     t0 = time.time()
     buf = {k: [] for k in ("i224", "m224", "i96", "m96")}

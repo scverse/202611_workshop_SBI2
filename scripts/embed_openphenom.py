@@ -27,8 +27,9 @@ import zarr
 
 W = Path(os.environ["SBI2_WORK"])
 SNAP = next((W / ".hf/hub/models--recursionpharma--OpenPhenom/snapshots").iterdir())
-ZEROSHOT = Path(os.environ["SBI2_SOURCE"]) / Path("results/baselines/openphenom_zeroshot/"
-                "OpenPhenom_zeroshot_JUMP_singlecell.h5ad")
+ZEROSHOT = Path(os.environ["SBI2_SOURCE"]) / Path(
+    "results/baselines/openphenom_zeroshot/OpenPhenom_zeroshot_JUMP_singlecell.h5ad"
+)
 SRC_ORDER = ["DNA", "AGP", "ER", "Mito", "RNA"]
 RXRX_ORDER = ["DNA", "ER", "AGP", "RNA", "Mito"]
 PERM = [SRC_ORDER.index(c) for c in RXRX_ORDER]
@@ -66,7 +67,7 @@ def embed(x: np.ndarray) -> np.ndarray:
 t0 = time.time()
 out = np.zeros((n, 384), np.float32)
 for s in range(0, n, BS):
-    out[s:s + BS] = embed(g["images"][s:s + BS][:, PERM])
+    out[s : s + BS] = embed(g["images"][s : s + BS][:, PERM])
 print(f"embedded {n} cells in {time.time() - t0:.0f}s; finite: {np.isfinite(out).all()}")
 np.save(WORK / "X_openphenom.npy", out)
 

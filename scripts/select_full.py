@@ -40,7 +40,10 @@ sel.loc[sel.is_control, "activity_class"] = "control"
 
 sel = sel.sort_values(["shard_index", "key_in_shard"]).reset_index(drop=True)
 sel.to_parquet(W / "data/full_selected.parquet")
-print(sel.groupby("source").agg(cells=("row_key", "size"), dmso=("is_control", "sum"), plates=("plate", "nunique"),
-                                compounds=(key, "nunique")))
+print(
+    sel.groupby("source").agg(
+        cells=("row_key", "size"), dmso=("is_control", "sum"), plates=("plate", "nunique"), compounds=(key, "nunique")
+    )
+)
 print("total", len(sel), "cells,", sel[key].nunique(), "perturbations,", sel.shard_index.nunique(), "shards")
 print(sel.activity_class.value_counts().to_dict())

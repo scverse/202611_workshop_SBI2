@@ -92,17 +92,33 @@ def main():
     val_x, val_y = torch.from_numpy(np.concatenate(val_x)), np.concatenate(val_y)
     n_total = sum(a.shape[0] for a in images)
     n_train = n_total - len(val_x)
-    print(f"{run}: {len(labels)} classes, {len(val_plates)} of {len(plates)} plates held out "
-          f"({len(val_x)} of {n_total} cells), {args.threads} threads")
+    print(
+        f"{run}: {len(labels)} classes, {len(val_plates)} of {len(plates)} plates held out "
+        f"({len(val_x)} of {n_total} cells), {args.threads} threads"
+    )
 
     if args.sampler == "shuffle":
-        loader = Loader(batch_size=args.batch_size, chunk_size=16, preload_nchunks=64, shuffle=True, drop_last=True,
-                        to="torch", preload_to_gpu=False, rng=np.random.default_rng(0))
+        loader = Loader(
+            batch_size=args.batch_size,
+            chunk_size=16,
+            preload_nchunks=64,
+            shuffle=True,
+            drop_last=True,
+            to="torch",
+            preload_to_gpu=False,
+            rng=np.random.default_rng(0),
+        )
     else:  # every class equally likely; a class needs contiguous runs of >= chunk_size rows (grouped collection)
         classes = pd.Categorical(pd.concat([o["highlight"].astype(str) for o in obs], ignore_index=True))
-        sampler = WeightedClassSampler(chunk_size=16, preload_nchunks=64, batch_size=args.batch_size, classes=classes,
-                                       num_samples=n_train // args.batch_size * args.batch_size, drop_last=True,
-                                       rng=np.random.default_rng(0))
+        sampler = WeightedClassSampler(
+            chunk_size=16,
+            preload_nchunks=64,
+            batch_size=args.batch_size,
+            classes=classes,
+            num_samples=n_train // args.batch_size * args.batch_size,
+            drop_last=True,
+            rng=np.random.default_rng(0),
+        )
         loader = Loader(batch_sampler=sampler, to="torch", preload_to_gpu=False)
     loader.add_datasets(images, obs=obs)
 
@@ -115,12 +131,14 @@ def main():
     @torch.no_grad()
     def validate() -> dict[str, float]:
         model.eval()
-        logits = torch.cat([model(to_input(val_x[s:s + 512])) for s in range(0, len(val_x), 512)])
+        logits = torch.cat([model(to_input(val_x[s : s + 512])) for s in range(0, len(val_x), 512)])
         model.train()
         pred = logits.argmax(1).numpy()
-        return {"val_loss": F.cross_entropy(logits, torch.from_numpy(val_y)).item(),
-                "val_acc": float((pred == val_y).mean()),
-                "val_balanced_acc": float(balanced_accuracy_score(val_y, pred))}
+        return {
+            "val_loss": F.cross_entropy(logits, torch.from_numpy(val_y)).item(),
+            "val_acc": float((pred == val_y).mean()),
+            "val_balanced_acc": float(balanced_accuracy_score(val_y, pred)),
+        }
 
     f = open(out / f"{run}_losses.csv", "w", newline="")
     w = csv.writer(f)
@@ -161,13 +179,18 @@ def main():
         for k, val in v.items():
             w.writerow([args.tier, args.sampler, args.max_lr, epoch, step, seen, k, val])
         f.flush()
-        print(f"[{run}] epoch {epoch}: {n_img} images in {dt:.0f} s ({n_img / dt:.0f} images/s); held-out loss "
-              f"{v['val_loss']:.3f}, accuracy {v['val_acc']:.3f}, balanced accuracy {v['val_balanced_acc']:.3f}; "
-              f"peak RSS {peak_rss_gb():.2f} GB", flush=True)
+        print(
+            f"[{run}] epoch {epoch}: {n_img} images in {dt:.0f} s ({n_img / dt:.0f} images/s); held-out loss "
+            f"{v['val_loss']:.3f}, accuracy {v['val_acc']:.3f}, balanced accuracy {v['val_balanced_acc']:.3f}; "
+            f"peak RSS {peak_rss_gb():.2f} GB",
+            flush=True,
+        )
     f.close()
     if half_step:
-        print(f"[{run}] smoothed train loss below half its initial value at step {half_step[0]} "
-              f"({half_step[1]} images, {half_step[2]:.0f} s)")
+        print(
+            f"[{run}] smoothed train loss below half its initial value at step {half_step[0]} "
+            f"({half_step[1]} images, {half_step[2]:.0f} s)"
+        )
     else:
         print(f"[{run}] smoothed train loss never fell below half its initial value ({first_loss:.3f} -> {smooth:.3f})")
     torch.save(model.state_dict(), out / f"{run}_cnn.pt")

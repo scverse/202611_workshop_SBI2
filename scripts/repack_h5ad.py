@@ -1,5 +1,6 @@
 """Repack the tier h5ads (HDF5 keeps the space of rewritten groups; copying every element reclaims it).
 Datasets keep their chunking and compression. Verifies obs/X/obsm shapes after the copy."""
+
 import os
 from pathlib import Path
 

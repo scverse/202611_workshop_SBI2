@@ -31,16 +31,27 @@ def load(path) -> ad.AnnData:
     f = h5py.File(path, "r")
     _open.append(f)
     obs = ad.io.read_elem(f["obs"])[["compound", "highlight", "Metadata_Source", "Metadata_Plate", "Metadata_Well"]]
-    return ad.AnnData(obs=obs, obsm={"single_cell_images": ad.experimental.read_elem_lazy(
-        f["obsm"]["single_cell_images"], chunks=(16, -1, -1, -1))})
+    return ad.AnnData(
+        obs=obs,
+        obsm={
+            "single_cell_images": ad.experimental.read_elem_lazy(
+                f["obsm"]["single_cell_images"], chunks=(16, -1, -1, -1)
+            )
+        },
+    )
 
 
 if OUT.exists():
     shutil.rmtree(OUT)
 t0 = time.time()
 DatasetCollection(zarr.open(OUT, mode="w")).add_adatas(
-    adata_paths=[H5], load_adata=load, groupby="compound", shuffle=True, n_obs_per_chunk=16,
-    rng=np.random.default_rng(0))
+    adata_paths=[H5],
+    load_adata=load,
+    groupby="compound",
+    shuffle=True,
+    n_obs_per_chunk=16,
+    rng=np.random.default_rng(0),
+)
 print(f"grouped collection {OUT.name} built in {time.time() - t0:.0f} s")
 for f in _open:
     f.close()

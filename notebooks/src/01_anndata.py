@@ -74,13 +74,17 @@ print("crops:", images.shape, images.dtype, "| masks:", masks.shape)
 # detectably (inactive), measured against DMSO. The `qc_*` columns flag problems; `qc_fail` is True for cells with an empty nucleus or cell mask.
 
 # %%
-cells.obs[["compound", "target", "activity_class", "Metadata_Source", "Metadata_Plate", "Metadata_Well",
-           "qc_fail"]].head()
+cells.obs[
+    ["compound", "target", "activity_class", "Metadata_Source", "Metadata_Plate", "Metadata_Well", "qc_fail"]
+].head()
 
 # %%
 summary = cells.obs.groupby("Metadata_Source", observed=True).agg(
-    cells=("compound", "size"), plates=("Metadata_Plate", "nunique"), compounds=("compound", "nunique"),
-    dmso_cells=("is_control", "sum"))
+    cells=("compound", "size"),
+    plates=("Metadata_Plate", "nunique"),
+    compounds=("compound", "nunique"),
+    dmso_cells=("is_control", "sum"),
+)
 summary
 
 # %% [markdown]
@@ -114,6 +118,7 @@ pd.DataFrame(X[:, :6], columns=cells.var_names[sel][:6]).describe().round(2)
 # Let us look at a DMSO cell and a cell treated with colchicine, which breaks down microtubules and makes cells round
 # up. We read just these two crops from disk.
 
+
 # %%
 def show_cell(i, axes):
     img, msk = np.asarray(images[i]), np.asarray(masks[i])
@@ -129,8 +134,10 @@ def show_cell(i, axes):
 
 obs = cells.obs.reset_index(drop=True)
 ok = ~obs.qc_fail.to_numpy()
-picks = {"DMSO": int(np.flatnonzero(ok & (obs.compound == "DMSO").to_numpy())[0]),
-         "colchicine": int(np.flatnonzero(ok & (obs.compound == "colchicine").to_numpy())[0])}
+picks = {
+    "DMSO": int(np.flatnonzero(ok & (obs.compound == "DMSO").to_numpy())[0]),
+    "colchicine": int(np.flatnonzero(ok & (obs.compound == "colchicine").to_numpy())[0]),
+}
 fig, axes = plt.subplots(2, 7, figsize=(14, 4.4))
 for row, (name, i) in zip(axes, picks.items()):
     show_cell(i, row)
@@ -138,8 +145,14 @@ for row, (name, i) in zip(axes, picks.items()):
 plt.tight_layout()
 
 # %%
-features = ["Cells_Area", "Nuclei_Area", "Cells_Eccentricity", "Cells_FormFactor",
-            "Cells_Intensity_MeanIntensity__AGP", "Cells_Intensity_MeanIntensity__Mito"]
+features = [
+    "Cells_Area",
+    "Nuclei_Area",
+    "Cells_Eccentricity",
+    "Cells_FormFactor",
+    "Cells_Intensity_MeanIntensity__AGP",
+    "Cells_Intensity_MeanIntensity__Mito",
+]
 features = [f for f in features if f in cells.var_names]
 cols = cells.var_names.get_indexer(features)
 pd.DataFrame({name: cells.X[i, cols] for name, i in picks.items()}, index=features).round(2)

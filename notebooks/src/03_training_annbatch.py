@@ -61,14 +61,17 @@ print(f"{x_all.shape[1]} features, {len(x_train)} training cells")
 # Encoder: features -> 256 -> 32. Decoder: 32 -> 256 -> features. The same definition is in
 # `scripts/train_autoencoder.py`, which trained the shipped model.
 
+
 # %%
 class AutoEncoder(nn.Module):
     def __init__(self, n_in: int, hidden: int = 256, latent: int = 32, dropout: float = 0.1):
         super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(n_in, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Dropout(dropout),
-                                     nn.Linear(hidden, latent))
-        self.decoder = nn.Sequential(nn.Linear(latent, hidden), nn.LayerNorm(hidden), nn.GELU(),
-                                     nn.Linear(hidden, n_in))
+        self.encoder = nn.Sequential(
+            nn.Linear(n_in, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden, latent)
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(latent, hidden), nn.LayerNorm(hidden), nn.GELU(), nn.Linear(hidden, n_in)
+        )
 
     def forward(self, x):
         z = self.encoder(x)
@@ -92,8 +95,15 @@ try:
     from annbatch import Loader
 
     def make_loader():
-        return Loader(batch_size=BATCH_SIZE, chunk_size=32, preload_nchunks=64, shuffle=True, drop_last=True,
-                      to="torch", preload_to_gpu=False).add_adata(ad.AnnData(X=x_train))
+        return Loader(
+            batch_size=BATCH_SIZE,
+            chunk_size=32,
+            preload_nchunks=64,
+            shuffle=True,
+            drop_last=True,
+            to="torch",
+            preload_to_gpu=False,
+        ).add_adata(ad.AnnData(X=x_train))
 
     def batches(loader):
         for batch in loader:
@@ -109,8 +119,7 @@ if make_loader is None:
     from torch.utils.data import DataLoader, TensorDataset
 
     def make_loader():
-        return DataLoader(TensorDataset(torch.from_numpy(x_train)), batch_size=BATCH_SIZE, shuffle=True,
-                          drop_last=True)
+        return DataLoader(TensorDataset(torch.from_numpy(x_train)), batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
     def batches(loader):
         for (x,) in loader:
@@ -138,11 +147,29 @@ by_class = np.argsort(compound, kind="stable")
 classes = pd.Categorical(compound[by_class])
 grouped = ad.AnnData(X=x_train[by_class], obs=pd.DataFrame({"compound": classes}))
 
-plain = Loader(batch_size=256, chunk_size=32, preload_nchunks=64, shuffle=True, drop_last=True, to="torch",
-               preload_to_gpu=False, rng=np.random.default_rng(0)).add_adata(grouped)
-balanced = Loader(batch_sampler=WeightedClassSampler(
-    chunk_size=32, preload_nchunks=64, batch_size=256, classes=classes, num_samples=len(classes) // 256 * 256,
-    drop_last=True, rng=np.random.default_rng(0)), to="torch", preload_to_gpu=False).add_adata(grouped)
+plain = Loader(
+    batch_size=256,
+    chunk_size=32,
+    preload_nchunks=64,
+    shuffle=True,
+    drop_last=True,
+    to="torch",
+    preload_to_gpu=False,
+    rng=np.random.default_rng(0),
+).add_adata(grouped)
+balanced = Loader(
+    batch_sampler=WeightedClassSampler(
+        chunk_size=32,
+        preload_nchunks=64,
+        batch_size=256,
+        classes=classes,
+        num_samples=len(classes) // 256 * 256,
+        drop_last=True,
+        rng=np.random.default_rng(0),
+    ),
+    to="torch",
+    preload_to_gpu=False,
+).add_adata(grouped)
 
 
 def dmso_share(loader):
@@ -170,8 +197,10 @@ for x in batches(make_loader()):
     loss.backward()
     opt.step()
     losses.append(loss.item())
-print(f"1 epoch: {len(losses)} batches in {time.time() - t0:.1f} s, "
-      f"loss {np.mean(losses[:10]):.2f} (first 10 batches) -> {np.mean(losses[-10:]):.2f} (last 10)")
+print(
+    f"1 epoch: {len(losses)} batches in {time.time() - t0:.1f} s, "
+    f"loss {np.mean(losses[:10]):.2f} (first 10 batches) -> {np.mean(losses[-10:]):.2f} (last 10)"
+)
 
 # %% [markdown]
 # ### The trained model
@@ -234,6 +263,7 @@ def to_input(x):
     """uint8 crops (B, 5, 96, 96) -> floats in [0, 1] at 48 px."""
     return F.avg_pool2d(x.float().div_(255.0), 2)
 
+
 # %%
 # ILAN: annbatch Loader over the crops of a pre-shuffled collection
 # Draft from scripts/poc_annbatch_ooc.py; replace with the version you present.
@@ -257,8 +287,16 @@ val_idx = [np.flatnonzero(o["Metadata_Plate"].astype(str).isin(val_plates).to_nu
 val_x = to_input(torch.from_numpy(np.concatenate([c.oindex[i] for c, i in zip(crops, val_idx)])))
 val_y = np.concatenate([o["highlight"].astype(str).map(label_id).to_numpy()[i] for o, i in zip(crop_obs, val_idx)])
 
-image_loader = Loader(batch_size=128, chunk_size=16, preload_nchunks=64, shuffle=True, drop_last=True, to="torch",
-                      preload_to_gpu=False, rng=np.random.default_rng(0))
+image_loader = Loader(
+    batch_size=128,
+    chunk_size=16,
+    preload_nchunks=64,
+    shuffle=True,
+    drop_last=True,
+    to="torch",
+    preload_to_gpu=False,
+    rng=np.random.default_rng(0),
+)
 image_loader.add_datasets(crops, obs=crop_obs)
 print(f"{len(val_y)} validation cells on {len(val_plates)} held-out plates")
 
@@ -282,9 +320,15 @@ if not Path(grouped_path).exists():
     h5 = h5py.File(tier_file(TIER), "r")
     lazy_crops = ad.experimental.read_elem_lazy(h5["obsm"]["single_cell_images"], chunks=(16, -1, -1, -1))
     DatasetCollection(zarr.open(grouped_path, mode="w")).add_adatas(
-        adata_paths=[tier_file(TIER)], groupby="compound", shuffle=True, n_obs_per_chunk=16,
-        load_adata=lambda path: ad.AnnData(obs=ad.io.read_elem(h5["obs"])[["compound", "highlight", "Metadata_Plate"]],
-                                           obsm={"single_cell_images": lazy_crops}))
+        adata_paths=[tier_file(TIER)],
+        groupby="compound",
+        shuffle=True,
+        n_obs_per_chunk=16,
+        load_adata=lambda path: ad.AnnData(
+            obs=ad.io.read_elem(h5["obs"])[["compound", "highlight", "Metadata_Plate"]],
+            obsm={"single_cell_images": lazy_crops},
+        ),
+    )
     h5.close()
     print(f"grouped collection built in {time.time() - t0:.0f} s")
 g_groups = [g for _, g in sorted(zarr.open(grouped_path, mode="r").groups())]
@@ -292,9 +336,19 @@ g_crops = [g["obsm"]["single_cell_images"] for g in g_groups]
 g_obs = [ad.io.read_elem(g["obs"])[["highlight", "Metadata_Plate"]] for g in g_groups]
 classes = pd.Categorical(pd.concat([o["highlight"].astype(str) for o in g_obs], ignore_index=True))
 n_train = sum(c.shape[0] for c in crops) - len(val_y)
-balanced_loader = Loader(batch_sampler=WeightedClassSampler(
-    chunk_size=16, preload_nchunks=64, batch_size=128, classes=classes, num_samples=n_train // 128 * 128,
-    drop_last=True, rng=np.random.default_rng(0)), to="torch", preload_to_gpu=False)
+balanced_loader = Loader(
+    batch_sampler=WeightedClassSampler(
+        chunk_size=16,
+        preload_nchunks=64,
+        batch_size=128,
+        classes=classes,
+        num_samples=n_train // 128 * 128,
+        drop_last=True,
+        rng=np.random.default_rng(0),
+    ),
+    to="torch",
+    preload_to_gpu=False,
+)
 balanced_loader.add_datasets(g_crops, obs=g_obs)
 
 # %% [markdown]
@@ -329,10 +383,12 @@ def train(loader, epochs=EPOCHS, max_lr=1e-2):
             curve.append((seen, loss.item()))
         net.eval()
         with torch.no_grad():
-            pred = torch.cat([net(val_x[s:s + 512]) for s in range(0, len(val_x), 512)]).argmax(1).numpy()
+            pred = torch.cat([net(val_x[s : s + 512]) for s in range(0, len(val_x), 512)]).argmax(1).numpy()
         history.append((seen, balanced_accuracy_score(val_y, pred)))
-        print(f"  epoch {epoch}: {time.time() - t0:.0f} s, held-out balanced accuracy {history[-1][1]:.3f} "
-              f"(chance {1 / len(labels):.3f})")
+        print(
+            f"  epoch {epoch}: {time.time() - t0:.0f} s, held-out balanced accuracy {history[-1][1]:.3f} "
+            f"(chance {1 / len(labels):.3f})"
+        )
     print(f"  {seen / (time.time() - t0):.0f} crops per second")
     return np.array(curve), np.array(history)
 
@@ -410,8 +466,7 @@ if RUN_SCALE:
     zipfile.ZipFile(fetch("workshop_full_collection.zarr.zip")).extractall("data")
     g = zarr.open("data/workshop_full_collection.zarr", mode="r")["dataset_0"]
     meta = ad.io.read_elem(g["obs"])
-    loader = Loader(batch_size=64, chunk_size=16, preload_nchunks=64, shuffle=True, to="torch",
-                    preload_to_gpu=False)
+    loader = Loader(batch_size=64, chunk_size=16, preload_nchunks=64, shuffle=True, to="torch", preload_to_gpu=False)
     loader.add_dataset(g["obsm"]["single_cell_images"], obs=meta)  # or g["X"] for the features
     t0 = time.time()
     for i, batch in enumerate(loader):
