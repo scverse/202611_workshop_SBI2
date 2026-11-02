@@ -15,9 +15,9 @@
 # (`huggingface_mae.py`); the weights are loaded with `torch.load(..., weights_only=True)`.
 
 # %%
-TIER = "small"  # or "full"
+TIER = "full"  # or "small"
 N_CELLS = 1000  # cells to embed live; None embeds all cells of the tier (about 30 min for the small tier on 4 threads)
-RUN_LIVE = False  # True: download OpenPhenom and embed N_CELLS cells live (needs internet, ~2-3 min on 4 threads)
+RUN_LIVE = True  # True: download OpenPhenom and embed N_CELLS cells live (needs internet, ~2-3 min on 4 threads)
 
 # %%
 from data import short_warnings
@@ -28,6 +28,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import platform
 
 import anndata as ad
 import h5py
@@ -42,10 +43,12 @@ from huggingface_hub import snapshot_download
 
 from data import fetch, load_cells, load_images, peak_memory_gb, tier_file
 
+device = "mps" if platform.system() == "Darwin" else "cpu"  # or gpu if you have nvidia hardware! or tpu with google!
 RUN_LIVE = (RUN_LIVE or os.environ.get("SBI2_RUN_LIVE") == "1") and os.environ.get(
     "SBI2_SKIP_LIVE"
 ) != "1"  # build-machine overrides
-torch.set_num_threads(4)
+if device == "cpu":
+    torch.set_num_threads(4)
 t_start = time.time()
 path = tier_file(TIER)
 cells = load_cells(path)
@@ -130,9 +133,9 @@ if RUN_LIVE:
     snap = Path(snapshot_download("recursionpharma/OpenPhenom", revision="0f92333685f6e9f031b804c70fe246f9b05ae90d"))
     sys.path.insert(0, str(snap.parent))
     op = __import__(f"{snap.name}.huggingface_mae", fromlist=["MAEModel"])
-    model = op.MAEModel(op.MAEConfig.from_pretrained(str(snap)))
+    model = op.MAEModel(op.MAEConfig.from_pretrained(str(snap))).to(device)
     with open(snap / "model.safetensors", "rb") as fh:  # despite the name, a regular PyTorch checkpoint
-        model.load_state_dict(torch.load(fh, map_location="cpu", weights_only=True)["state_dict"])
+        model.load_state_dict(torch.load(fh, map_location=device, weights_only=True)["state_dict"])
     model.eval()
     model.return_channelwise_embeddings = False
     print(f"{sum(p.numel() for p in model.encoder.parameters()) / 1e6:.0f} M encoder parameters")
@@ -143,11 +146,10 @@ def embed(crops_uint8: np.ndarray, batch_size: int = 32) -> np.ndarray:
     """(n, 5, H, W) uint8 crops in our channel order -> (n, 384) OpenPhenom embeddings."""
     out = []
     for s in range(0, len(crops_uint8), batch_size):
-        x = torch.from_numpy(np.ascontiguousarray(crops_uint8[s : s + batch_size][:, perm]))  # remap channels by name
+        x = torch.from_numpy(np.ascontiguousarray(crops_uint8[s : s + batch_size][:, perm])).to(device)  # remap channels by name
         x = TF.resize(x, [256, 256], antialias=True)  # upsample to the model's input size, still uint8
-        out.append(model.predict(x).numpy())
+        out.append(model.predict(x).to("cpu").numpy())
     return np.concatenate(out)
-
 
 # %% [markdown]
 # ## Inference, live
@@ -176,7 +178,6 @@ if RUN_LIVE:
 
 def cosine(a, b):
     return (a * b).sum(1) / np.linalg.norm(a, axis=1) / np.linalg.norm(b, axis=1)
-
 
 # %% [markdown]
 # Do we get the stored embeddings back? The stored ones were computed from the original 224 px crops; we used the
@@ -341,6 +342,7 @@ consensus.obs["compound"] = pd.Categorical([
 sc.tl.dendrogram(consensus, "compound", use_rep="X", linkage_method="average")
 sc.pl.correlation_matrix(consensus, "compound", cmap="RdBu_r", vmin=-1, vmax=1, figsize=(9, 8))
 
+
 # %% [markdown]
 # **A map of the wells**, coloured by mechanism class (active compounds only; "NA" in grey covers inactive
 # compounds and active ones without a class), and a few example crops per class.
@@ -360,6 +362,7 @@ sc.pl.umap(
     groups=[m for m in wells.obs["mechanism"].unique() if m != "other"],
     title="well profiles (OpenPhenom), coloured by mechanism class",
 )
+
 
 # %%
 show = [c for c in ["DMSO", "tubulin", "HSP90", "ribosome / translation", "CDK"] if c in set(wells.obs["mechanism"])]
@@ -467,3 +470,5 @@ fp
 
 # %%
 print(f"runtime {time.time() - t_start:.0f} s, peak memory {peak_memory_gb():.2f} GB")
+
+# %%

@@ -28,6 +28,7 @@ import time
 
 import anndata as ad
 import mantispy as mt
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -64,7 +65,7 @@ lazy
 cells = load_cells(path)
 images, masks = load_images(path)
 print(cells)
-print("crops:", images.shape, images.dtype, "| masks:", masks.shape)
+print("\ncrops:", images.shape, images.dtype, "| masks:", masks.shape)
 
 # %% [markdown]
 # ### `obs`: the cells
@@ -106,6 +107,7 @@ cells.var[["object", "feature_group", "feature", "channel", "selected"]].sample(
 # plate: subtract the plate median, divide by the spread (a robust z-score, "mad_robustize" in mantispy). A value of
 # 3 means "three spreads above a typical cell on that plate". A few cells reach very large values, so we clip at
 # +-50 before computing distances.
+# `cells.layers["raw"]` contains the underlying, unnormalized raw data.
 
 # %%
 sel = cells.var["selected"].to_numpy()
@@ -119,9 +121,8 @@ pd.DataFrame(X[:, :6], columns=cells.var_names[sel][:6]).describe().round(2)
 # Let us look at a DMSO cell and a cell treated with colchicine, which breaks down microtubules and makes cells round
 # up. We read just these two crops from disk.
 
-
 # %%
-def show_cell(i, axes):
+def show_cell(i: int, axes: matplotlib.axes.Axes):
     img, msk = np.asarray(images[i]), np.asarray(masks[i])
     for c, ax in enumerate(axes[:5]):
         ax.imshow(img[c], cmap="gray")
@@ -170,7 +171,10 @@ pd.DataFrame({name: cells.X[i, cols] for name, i in picks.items()}, index=featur
 
 # %%
 wells = mt.tl.aggregate(cells[:, sel].copy(), by=("Metadata_Plate", "Metadata_Well"), func="median", min_cells=5)
+print("Aggregated `AnnData` object - one row per well:\n")
 print(wells)
+print("\n-----------------------------------------------------------------------------\n")
+print("Some information per well:\n")
 wells.obs[["Metadata_Plate", "Metadata_Well", "Metadata_CellCount"]].head()
 
 # %% [markdown]
@@ -194,8 +198,10 @@ sc.pp.neighbors(selected, n_neighbors=15)
 sc.tl.umap(selected)
 sc.pl.umap(selected, color=["activity_class", "Metadata_Source"])
 
+
 # %%
 sc.pl.umap(selected, color="highlight", title="compound (curated 40 + DMSO)")
+
 
 # %% [markdown]
 # Two things stand out. Cells treated with strongly active compounds (for example the microtubule and translation
@@ -204,3 +210,5 @@ sc.pl.umap(selected, color="highlight", title="compound (curated 40 + DMSO)")
 
 # %%
 print(f"runtime {time.time() - t_start:.0f} s, peak memory {peak_memory_gb():.2f} GB")
+
+# %%
