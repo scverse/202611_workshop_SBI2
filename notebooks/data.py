@@ -73,7 +73,10 @@ def peak_memory_gb() -> float:
 
 def short_warnings() -> None:
     """Keep warnings on, but print them as 'Category: message' without the file path."""
+    from pandas.errors import Pandas4Warning
+
     warnings.simplefilter("default")
+    warnings.filterwarnings("ignore", category=Pandas4Warning)  # deprecations raised inside dependencies
     warnings.formatwarning = lambda message, category, *args, **kwargs: f"{category.__name__}: {message}\n"
 
 
