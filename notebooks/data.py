@@ -11,12 +11,12 @@ import warnings
 # print warnings as "Category: message" (no file paths); set before the imports below, which can warn
 warnings.formatwarning = lambda message, category, *args, **kwargs: f"{category.__name__}: {message}\n"
 
-import platform  # noqa: E402
-import resource  # noqa: E402
+import platform
+import resource
 
-import anndata as ad  # noqa: E402
-import h5py  # noqa: E402
-import pooch  # noqa: E402
+import anndata as ad
+import h5py
+import pooch
 
 BASE_URL = "https://exampledata.scverse.org/sbi2-cytodata/workshop/"
 

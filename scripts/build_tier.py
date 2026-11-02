@@ -13,18 +13,17 @@ Re-runnable: rerun after training the autoencoder / embedding to add X_ae / X_op
 sbatch: scripts/run.sh 8 96G 120 scripts/build_tier.py --tier full
 """
 
-import os
 import argparse
 import json
+import os
 from pathlib import Path
 
-import h5py
-import zarr
-
 import anndata as ad
+import h5py
 import mantispy as mp
 import numpy as np
 import pandas as pd
+import zarr
 
 W = Path(os.environ["SBI2_WORK"])
 FT = Path(os.environ["SBI2_SOURCE"]) / Path("results/embeddings/05_JUMP_OpenPhenom_ECFP4_C_singlecell.h5ad")

@@ -3,8 +3,8 @@
     python strip_raw.py --tier full
 """
 
-import os
 import argparse
+import os
 from pathlib import Path
 
 import h5py

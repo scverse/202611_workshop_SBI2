@@ -3,15 +3,14 @@
 Sources: the Yokogawa spinning-disk confocals with NA 0.75 objectives in JUMP's microscope_config.csv
 (CV8000: source_5, source_6, source_10; CV7000: source_7, source_13), ~0.65 um pixels, laser excitation.
 Columns match data/selected.parquet (small tier) so build_tier.py treats both alike; activity columns come
-import os
 from data/compound_activity.parquet (run-05 activity mAP vs DMSO, per source) where available.
 
 Writes data/full_selected.parquet.
 """
 
+import os
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 P = Path(os.environ["SBI2_SOURCE"])

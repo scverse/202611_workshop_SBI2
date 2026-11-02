@@ -1,0 +1,10 @@
+line-length = 120  # the code is hand-wrapped at ~120
+format.preview = true  # as in anndata
+lint.select = ["B", "E", "F", "I", "RUF", "SIM", "UP", "W"]
+lint.ignore = [
+    "E501",  # long comments are fine
+    "B018",  # a cell's last expression is its output
+    "E402",  # imports come after the warnings setup on purpose
+]
+lint.isort.known-first-party = ["data"]
+lint.isort.split-on-trailing-comma = false

@@ -7,13 +7,12 @@ Reports the fraction of compounds active (q < 0.05), per source and per activity
 sbatch: scripts/run.sh 4 32G 60 scripts/sanity_activity.py
 """
 
-import os
 import argparse
+import os
 from pathlib import Path
 
-import h5py
-
 import anndata as ad
+import h5py
 import mantispy as mp
 import numpy as np
 import pandas as pd

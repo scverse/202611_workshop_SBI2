@@ -9,8 +9,8 @@ Then zips the collection directory (stored, no recompression: the chunks are alr
 sbatch: scripts/run.sh 8 64G 180 scripts/make_collection.py --tier full --collection
 """
 
-import os
 import argparse
+import os
 import shutil
 import subprocess
 import time

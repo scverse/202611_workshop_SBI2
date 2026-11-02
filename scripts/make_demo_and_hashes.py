@@ -1,7 +1,7 @@
 """Write openphenom_demo_crops224.h5 (256 small-tier cells at 224 px, the resolution X_openphenom was computed at)
 and print sha256 for every downloadable file (for notebooks/data.py)."""
-import os
 import hashlib
+import os
 from pathlib import Path
 
 import anndata as ad

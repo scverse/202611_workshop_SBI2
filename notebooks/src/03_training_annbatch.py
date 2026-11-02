@@ -30,8 +30,8 @@ import time
 from pathlib import Path
 
 import anndata as ad
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from torch import nn
 
@@ -271,7 +271,6 @@ print(f"{len(val_y)} validation cells on {len(val_plates)} held-out plates")
 
 # %%
 # ILAN: a collection grouped by compound, for WeightedClassSampler
-import shutil
 
 import h5py
 from annbatch import DatasetCollection

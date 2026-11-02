@@ -12,8 +12,8 @@ Cross-checks against the CP-BG-Bench zero-shot single-cell embeddings when prese
 sbatch -p gpu_p --gres=gpu:1 ... .venv-gpu/bin/python scripts/embed_openphenom.py
 """
 
-import os
 import argparse
+import os
 import sys
 import time
 from pathlib import Path

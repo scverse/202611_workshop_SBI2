@@ -9,8 +9,8 @@ Writes:
   data/compound_activity.parquet per (source, compound) mAP / q-value table for all TARGET2 compounds
 """
 
-import os
 import argparse
+import os
 from pathlib import Path
 
 import anndata as ad

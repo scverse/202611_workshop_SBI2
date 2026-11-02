@@ -54,7 +54,7 @@ for acc in (None, "numba"):
             # one row per object -> one wide row per cell
             wide = {f"{obj}_{c}": v for (img_id, obj, lab), row in zip(r, data) for c, v in zip(cols, row)}
             rows.append(wide)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             fails.append((int(idx[i]), repr(e)[:200]))
             if len(fails) == 1:
                 traceback.print_exc()

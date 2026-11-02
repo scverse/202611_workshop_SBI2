@@ -4,8 +4,8 @@
 The .npy rows must follow the h5ad's obs order; its row count is checked.
 """
 
-import os
 import argparse
+import os
 from pathlib import Path
 
 import anndata as ad

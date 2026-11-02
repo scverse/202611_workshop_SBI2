@@ -27,6 +27,7 @@ torchvision = "*"
 huggingface_hub = "*"
 transformers = "*"
 timm = "*"
+ruff = ">=0.17.3,<0.18"
 
 [pypi-dependencies]
 annbatch = "==0.3.1"

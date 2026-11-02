@@ -11,9 +11,9 @@ Rows follow data/selected.parquet; obs index = row_key.
 sbatch: scripts/run.sh 4 32G 120 scripts/extract_crops.py
 """
 
-import os
 import argparse
 import json
+import os
 import tarfile
 import time
 from pathlib import Path
