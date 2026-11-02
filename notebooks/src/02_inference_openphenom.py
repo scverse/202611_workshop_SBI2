@@ -35,11 +35,12 @@ import mantispy as mt
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scanpy as sc
 import torch
 import torchvision.transforms.v2.functional as TF
 from huggingface_hub import snapshot_download
 
-from data import fetch, load_cells, load_images, peak_memory_gb, plot_2d, tier_file, umap_2d
+from data import fetch, load_cells, load_images, peak_memory_gb, tier_file
 
 RUN_LIVE = (RUN_LIVE or os.environ.get("SBI2_RUN_LIVE") == "1") and os.environ.get(
     "SBI2_SKIP_LIVE"
@@ -334,24 +335,14 @@ annotated.uns["mantispy"]["map"].round(3)
 # by hierarchical clustering, with each compound's mechanism class next to its name.
 
 # %%
-from scipy.cluster.hierarchy import leaves_list, linkage
-
-sim = np.corrcoef(consensus.X)  # Pearson correlation of the centred profiles ~ cosine similarity
-order = leaves_list(linkage(consensus.X, "average", metric="cosine"))
-names = consensus.obs_names[order]
-classes = sorted(set(consensus.obs["Metadata_MOA"]))
-palette = dict(zip(classes, plt.get_cmap("tab10").colors))
-fig, ax = plt.subplots(figsize=(9, 8))
-im = ax.imshow(sim[np.ix_(order, order)], cmap="RdBu_r", vmin=-1, vmax=1)
-ax.set_xticks(range(len(names)), names, rotation=90, fontsize=7)
-ax.set_yticks(range(len(names)), [f"{n}  [{consensus.obs.loc[n, 'Metadata_MOA']}]" for n in names], fontsize=7)
-for lab in ax.get_yticklabels():
-    lab.set_color(palette[consensus.obs.loc[lab.get_text().split("  [")[0], "Metadata_MOA"]])
-plt.colorbar(im, ax=ax, shrink=0.6, label="correlation of compound profiles")
-plt.tight_layout()
+consensus.obs["compound"] = pd.Categorical([
+    f"{n}  [{m}]" for n, m in zip(consensus.obs_names, consensus.obs["Metadata_MOA"], strict=True)
+])
+sc.tl.dendrogram(consensus, "compound", use_rep="X", linkage_method="average")
+sc.pl.correlation_matrix(consensus, "compound", cmap="RdBu_r", vmin=-1, vmax=1, figsize=(9, 8))
 
 # %% [markdown]
-# **A map of the wells**, coloured by mechanism class (active compounds only; "other" in grey covers inactive
+# **A map of the wells**, coloured by mechanism class (active compounds only; "NA" in grey covers inactive
 # compounds and active ones without a class), and a few example crops per class.
 
 # %%
@@ -360,9 +351,15 @@ wells.obs["mechanism"] = [
     "DMSO" if p == "DMSO" else moa[p] if p in active_set else "other"
     for p in wells.obs["Metadata_Perturbation"].astype(str)
 ]
-xy = umap_2d(wells.X, n_neighbors=10)
-plot_2d(xy, wells.obs, ["mechanism"], titles=["well profiles (OpenPhenom), coloured by mechanism class"])
-plt.tight_layout()
+sc.pp.pca(wells, n_comps=50)
+sc.pp.neighbors(wells, n_neighbors=10)
+sc.tl.umap(wells)
+sc.pl.umap(
+    wells,
+    color="mechanism",
+    groups=[m for m in wells.obs["mechanism"].unique() if m != "other"],
+    title="well profiles (OpenPhenom), coloured by mechanism class",
+)
 
 # %%
 show = [c for c in ["DMSO", "tubulin", "HSP90", "ribosome / translation", "CDK"] if c in set(wells.obs["mechanism"])]

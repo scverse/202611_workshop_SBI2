@@ -31,8 +31,9 @@ import mantispy as mt
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scanpy as sc
 
-from data import load_cells, load_images, peak_memory_gb, plot_2d, tier_file, umap_2d
+from data import load_cells, load_images, peak_memory_gb, tier_file
 
 t_start = time.time()
 path = tier_file(TIER)
@@ -186,13 +187,15 @@ wells.obs[["Metadata_Plate", "Metadata_Well", "Metadata_CellCount"]].head()
 # features.
 
 # %%
-xy = umap_2d(X)  # PCA to 50 dimensions, then UMAP on the 15-nearest-neighbor graph
-plot_2d(xy, cells.obs, ["activity_class", "Metadata_Source"])
-plt.tight_layout()
+selected = cells[:, sel].copy()
+selected.X = X
+sc.pp.pca(selected, n_comps=50)
+sc.pp.neighbors(selected, n_neighbors=15)
+sc.tl.umap(selected)
+sc.pl.umap(selected, color=["activity_class", "Metadata_Source"])
 
 # %%
-plot_2d(xy, cells.obs, ["highlight"], titles=["compound (curated 40 + DMSO)"], max_legend=45)
-plt.tight_layout()
+sc.pl.umap(selected, color="highlight", title="compound (curated 40 + DMSO)")
 
 # %% [markdown]
 # Two things stand out. Cells treated with strongly active compounds (for example the microtubule and translation

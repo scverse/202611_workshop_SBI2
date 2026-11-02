@@ -32,10 +32,11 @@ from pathlib import Path
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
+import scanpy as sc
 import torch
 from torch import nn
 
-from data import fetch, load_cells, peak_memory_gb, plot_2d, tier_file, umap_2d
+from data import fetch, load_cells, peak_memory_gb, tier_file
 
 torch.manual_seed(0)
 t_start = time.time()
@@ -219,8 +220,10 @@ print(f"best validation loss during training: {ckpt['best_val_mse']:.3f}")
 print(f"max |z - stored X_ae| = {np.abs(z - cells.obsm['X_ae']).max():.2e}")
 
 # %%
-plot_2d(umap_2d(z), cells.obs, ["activity_class", "Metadata_Source"])
-plt.tight_layout()
+cells.obsm["X_ae"] = z
+sc.pp.neighbors(cells, n_neighbors=15, use_rep="X_ae")
+sc.tl.umap(cells)
+sc.pl.umap(cells, color=["activity_class", "Metadata_Source"])
 
 # %% [markdown]
 # The 32-number latent space keeps the main structure of the 1,100 features: active compounds separate from DMSO,
